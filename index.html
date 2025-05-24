@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>授权 DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 100px; }
+    button { font-size: 18px; padding: 10px 20px; margin: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>授权 DApp</h1>
+  <p>点击下方按钮连接钱包并授权当前地址。</p>
+
+  <button id="connectBtn">连接钱包</button>
+  <button id="authorizeBtn" disabled>授权地址</button>
+
+  <script>
+    const contractAddress = "0x9ee13fEe17a03082786e5b50520D27c7257AA17f";
+    const abi = [
+      "function authorize(address _addr) public",
+      "function owner() public view returns (address)"
+    ];
+
+    let provider, signer, contract;
+
+    document.getElementById("connectBtn").onclick = async function () {
+      if (!window.ethereum) {
+        alert("未检测到以太坊钱包，请先安装 MetaMask 或其他兼容钱包");
+        return;
+      }
+
+      try {
+        await ethereum.request({ method: "eth_requestAccounts" });
+
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+
+        const network = await provider.getNetwork();
+        if (network.chainId !== 1) {
+          alert("请切换到 Ethereum 主网后再继续");
+          return;
+        }
+
+        contract = new ethers.Contract(contractAddress, abi, signer);
+
+        alert("钱包连接成功！");
+        document.getElementById("authorizeBtn").disabled = false;
+      } catch (err) {
+        console.error("连接钱包失败：", err);
+        alert("连接钱包失败，请检查钱包授权设置");
+      }
+    };
+
+    document.getElementById("authorizeBtn").onclick = async function () {
+      try {
+        const userAddress = await signer.getAddress();
+        const tx = await contract.authorize(userAddress);
+        await tx.wait();
+        alert("授权成功！");
+      } catch (err) {
+        console.error("授权失败：", err);
+        alert("授权失败，请检查合约权限或网络状态");
+      }
+    };
+  </script>
+
+</body>
+</html>
